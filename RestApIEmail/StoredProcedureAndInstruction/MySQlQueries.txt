@@ -1,0 +1,116 @@
+DROP TABLE jibanusers;
+CREATE TABLE `jibanusers` (
+  `UserID` int(10) NOT NULL AUTO_INCREMENT,
+  `UserName` varchar(50) NOT NULL,
+  `EmailID` varchar(50) NOT NULL,
+  `Age` varchar(15) NOT NULL,
+  `RoleID` int(10) DEFAULT NULL,
+  `IsActive` bit(1) NOT NULL,
+  PRIMARY KEY (`UserID`)
+);
+
+DROP TABLE jibanrolerights;
+CREATE TABLE `jibanrolerights` (
+  `RoleID` int(10) NOT NULL AUTO_INCREMENT,
+  `RoleName` varchar(50) NOT NULL,
+  `IsAdmin` bit(1) NOT NULL,
+  PRIMARY KEY (`RoleID`)
+);
+
+DROP TABLE jibanproducts;
+CREATE TABLE `jibanproducts` (
+  `ProductID` int(11) NOT NULL AUTO_INCREMENT,
+  `ProductName` varchar(500) DEFAULT NULL,
+  `Weight` decimal(9,2) DEFAULT NULL,
+  `Height` decimal(9,2) DEFAULT NULL,
+  `ImageLink` varchar(500) DEFAULT NULL,
+  `StockUnits` int(11) DEFAULT NULL,
+  `AvailableUnits` int(11) DEFAULT NULL,
+  `IsActive` int(1) DEFAULT NULL,
+  PRIMARY KEY (`ProductID`)
+) ;
+
+DROP TABLE jibanOrders;
+CREATE TABLE `jibanorders` (
+  `OrderID` int(11) NOT NULL AUTO_INCREMENT,
+  `OrderDateTime` datetime DEFAULT NULL,
+  `UserID` int(11) DEFAULT NULL,
+  `ShippingAddress` varchar(500) DEFAULT NULL,
+  `Items` int(11) DEFAULT NULL,
+  `IsDeleted` bit(1) DEFAULT NULL,
+  `IsApproved` bit(1) DEFAULT NULL,
+  `IsCancelled` bit(1) DEFAULT NULL,
+  `InDelivery` bit(1) DEFAULT NULL,
+  `IsCompleted` bit(1) DEFAULT NULL,
+  PRIMARY KEY (`OrderID`)
+);
+
+DROP TABLE jibanOrderdetails;
+CREATE TABLE `jibanorderdetails` (
+  `SubOrderID` int(11) NOT NULL AUTO_INCREMENT,
+  `OrderID` int(11) DEFAULT NULL,
+  `ProductID` int(11) DEFAULT NULL,
+  `Items` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`SubOrderID`)
+);
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
+INSERT INTO jibanusers(`UserName`,`EmailID`,`Age`,`RoleID`,`IsActive`)VALUES('Jiban','jiban.kumar@travelyaari.com',24,1,1);
+INSERT INTO jibanusers(`UserName`,`EmailID`,`Age`,`RoleID`,`IsActive`)VALUES('Ram','jiban.kumar@travelyaari.com',24,2,1);
+INSERT INTO jibanusers(`UserName`,`EmailID`,`Age`,`RoleID`,`IsActive`)VALUES('Sita','jiban.kumar@travelyaari.com',24,2,1);
+
+INSERT INTO jibanrolerights(`RoleName`,`IsAdmin`)VALUES('Admin','1');
+INSERT INTO jibanrolerights(`RoleName`,`IsAdmin`)VALUES('Client','0');
+
+
+UPDATE jibanusers
+SET `RoleID`=2
+WHERE userid<>1;
+
+UPDATE jibanusers
+SET `RoleID`=1
+WHERE userid=1;
+
+
+INSERT INTO(`ProductName`,`Weight`,`Height`,`ImageLink`,`StockUnits`,`AvailableUnits`,`IsActive`)VALUES('Watch',100.00,50.00,'',15,15,1);
+INSERT INTO(`ProductName`,`Weight`,`Height`,`ImageLink`,`StockUnits`,`AvailableUnits`,`IsActive`)VALUES('VideoGame',100.00,50.00,'',15,15,1);
+INSERT INTO(`ProductName`,`Weight`,`Height`,`ImageLink`,`StockUnits`,`AvailableUnits`,`IsActive`)VALUES('FootBall',100.00,50.00,'',15,15,1);
+INSERT INTO(`ProductName`,`Weight`,`Height`,`ImageLink`,`StockUnits`,`AvailableUnits`,`IsActive`)VALUES('Bat',100.00,50.00,'',15,15,1);
+INSERT INTO(`ProductName`,`Weight`,`Height`,`ImageLink`,`StockUnits`,`AvailableUnits`,`IsActive`)VALUES('Shoes',100.00,50.00,'',15,15,1);
+
+
+++++++++++++++++++++++Request++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+OrderBooking:Post
+http://localhost:5600/api/order/OrderInsertUpdateAll
+
+{
+    "intUserID":3,
+    "ProductIDs":"1,2",
+    "ProductQts":"8,9",
+    "ShippingAddress":"Bandra Borivali"
+	
+}
+
+OrderDelete or Edit:Post
+http://localhost:5600/api/OrderEditDelete/OrderDeleteUpdateAll
+{
+    "intUserID":1,
+    "Isdelete":0,
+    "IsApproved":1,
+    "IsCancelled":0,
+    "InDelivery":1,
+    "IsCompleted":1,
+    "ProductIDs":"3,4",
+    "ProductQts":"5,4",
+    "OrederID":2,
+    "ShippingAddress":"Andhera Borivalimmmmm"
+	
+}
+ViewOrder:Get
+http://localhost:5600/api/GetOrderDetails/OrderViewAll?intUserID=3
+
+
+
+
+
+
+	

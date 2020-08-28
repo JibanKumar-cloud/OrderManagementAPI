@@ -1,0 +1,13 @@
+Documentation:
+1)There  projects has three controller
+   i)Orderbooking 
+   ii)OrderDeleteoredit
+   iii)ViewOrders
+2)I have Predefined the Product catagory with its properties ,similarly rolerights too.User have to login for booking,which will help me to gather the buyer information and assign rolerights.
+3)Administratior can only change the status related action but buyer can change rest.
+3)I have made the table and stored procedures to retrive and to store the status of the link which has been attached
+
+4)From EmailID and Password has kept empty,have to replace it with authorized emailid and password to send email
+
+
+

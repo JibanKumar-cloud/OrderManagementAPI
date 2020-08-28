@@ -1,0 +1,122 @@
+DELIMITER $$
+
+USE `crs2011`$$
+
+DROP PROCEDURE IF EXISTS `test_spOrderDeleteUpdate`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `test_spOrderDeleteUpdate`(
+	p_intUserID INT(11), 
+	p_ProductIDs VARCHAR(200) ,
+	p_ProductQts VARCHAR(200) ,	
+	p_ShippingAddress VARCHAR(2000), 
+	p_OrderID   INT(11),
+	p_Isdelete INT(1),
+	p_IsCancelled INT(1),
+	p_InDelivery INT(1),
+	p_IsCompleted INT(1),
+	p_IsApproved INT(1),
+	OUT p_ErrMsg VARCHAR(100)
+)
+sproc:BEGIN
+        DECLARE cur_DateTime DATETIME;
+        DECLARE p_TIsApproved INT DEFAULT 0; 
+        DECLARE p_TIsCancelled INT DEFAULT 0;
+        DECLARE p_TIsCompleted INT DEFAULT 0;
+        DECLARE p_TInDelivery INT DEFAULT 0;  
+        DECLARE p_TotalItem INT DEFAULT 0;
+       	
+        DECLARE p_IsAdmin INT DEFAULT 0;
+             
+   
+        SET cur_DateTime = current_date_time(); 
+       
+        DROP TEMPORARY TABLE IF EXISTS p_ProductIDsTB;
+	DROP TEMPORARY TABLE IF EXISTS p_ProductQtsTB;
+		
+	CREATE TEMPORARY TABLE p_ProductIDsTB (ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ProductID INT);
+	CREATE TEMPORARY TABLE p_ProductQtsTB (ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ProductQty INT);
+		
+        CALL ParmsToList(p_ProductIDs,',','p_ProductIDsTB','ProductID');
+	CALL ParmsToList(p_ProductQts,',','p_ProductQtsTB','ProductQty');
+
+	
+	SELECT SUM(ProductQty) INTO p_TotalItem FROM p_ProductQtsTB;
+	
+	SELECT COALESCE(IsAdmin,0) INTO p_IsAdmin FROM `jibanrolerights` a
+	INNER JOIN `jibanusers` b ON a.roleid=b.roleid
+	WHERE userid=p_intUserID;
+	
+	SELECT COALESCE(`IsApproved`,0),COALESCE(`IsCancelled`,0),COALESCE(`InDelivery`,0), COALESCE(`IsCompleted`,0) 
+	INTO   p_TIsApproved,p_TIsCancelled,p_TInDelivery,p_TIsCompleted 
+	FROM `jibanorders`
+	 WHERE `OrderID`=p_OrderID;
+	  
+	-- status can only be changed by admin
+	IF p_IsAdmin=0
+	THEN
+	      IF p_IsApproved<>p_TIsApproved OR p_IsCancelled<>p_TIsCancelled OR p_InDelivery<>p_TInDelivery OR p_IsCompleted<>p_TIsCompleted
+	      THEN
+	           SET p_ErrMsg = "Insufficient Rights!!";
+		   LEAVE sproc;
+	      END IF;
+	 
+	
+	END IF;
+	
+        START TRANSACTION;
+       
+        IF p_IsAdmin=0
+	THEN
+	         -- if Client User can Change other than status everything else
+		 IF p_Isdelete=0 
+		 THEN
+		         
+		         SELECT  p_OrderID;
+		 
+				UPDATE `jibanorders`
+				SET `OrderDateTime`=cur_DateTime,
+				`UserID`=p_intUserID,
+				`ShippingAddress`=p_ShippingAddress,
+				`Items`=p_TotalItem
+				WHERE `OrderID`=p_OrderID;
+				
+				
+			
+			      DELETE FROM jibanorderdetails WHERE `OrderID`=p_OrderID;
+			      INSERT INTO `jibanorderdetails`(`OrderID`,`ProductID`,`Items`)
+				   SELECT
+				     p_OrderID,
+				     a.ProductID,
+				     b.ProductQty
+				   FROM p_ProductIDsTB a
+				   INNER JOIN p_ProductQtsTB b ON a.id=b.id; -- To keep Track of each product inside a order
+
+		 
+		   ELSE
+			      UPDATE `jibanorders`
+			        SET `IsDeleted`=1
+			      WHERE `OrderID`=p_OrderID;
+		
+		   END IF;
+		   
+       ELSE
+		-- if admin then only status is being changed
+		   IF EXISTS(SELECT * FROM jibanorders WHERE  `OrderID`=p_OrderID AND COALESCE(IsCancelled,0)=0)
+		   THEN
+		   -- To Maintain the status,Once cancelled order by admin can not change data
+			  UPDATE jibanorders
+			    SET `IsApproved`=p_IsApproved,
+				`IsCancelled`=p_IsCancelled,
+				`InDelivery`=p_InDelivery,
+				`IsCompleted`=p_IsCompleted
+				WHERE `OrderID`=p_OrderID;
+		   
+		   END IF;
+           
+       END IF;
+        
+	   
+        COMMIT;
+END$$
+
+DELIMITER ;

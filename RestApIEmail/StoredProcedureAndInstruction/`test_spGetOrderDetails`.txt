@@ -1,0 +1,51 @@
+DELIMITER $$
+
+USE `crs2011`$$
+
+DROP PROCEDURE IF EXISTS `test_spGetOrderDetails`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `test_spGetOrderDetails`(
+	p_intUserID INT(11),
+	OUT p_ErrMsg VARCHAR(100)
+)
+sproc:BEGIN
+        DECLARE p_IsAdmin INT DEFAULT 0;
+        
+        SELECT COALESCE(IsAdmin,0) INTO p_IsAdmin FROM `jibanrolerights` a
+	INNER JOIN `jibanusers` b ON a.roleid=b.roleid
+	WHERE userid=p_intUserID;
+	
+	
+	
+	SELECT 
+	    a.`OrderID`,
+	   `ProductID`,
+	    b.`Items`,
+	   `OrderDateTime`,
+	   ShippingAddress,
+	   CASE WHEN `IsCancelled`=1
+	   THEN
+	         'Cancelled'
+	    WHEN `IsApproved`=1 AND `InDelivery`=0 AND `IsCompleted`=0
+	    THEN
+	         'Approved'
+	    WHEN `IsApproved`=1 AND `InDelivery`=1 AND `IsCompleted`=0
+	    THEN
+	          'InDelivery'
+	    WHEN `IsApproved`=1 AND `InDelivery`=1 AND `IsCompleted`=1
+	    THEN
+	         
+	         'Completed'
+	    ELSE
+	         'Placed'
+	   
+	    END 'Status'
+	   
+	FROM `jibanorders` a
+	INNER JOIN `jibanorderdetails` b ON a.orderid=b.orderid
+	WHERE (`UserID`=p_intUserID OR p_IsAdmin=1)
+	AND COALESCE(`IsDeleted`,0)=0;
+       
+END$$
+
+DELIMITER ;

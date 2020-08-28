@@ -1,0 +1,33 @@
+DELIMITER $$
+
+USE `crs2011`$$
+
+DROP PROCEDURE IF EXISTS `ParmsToList`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `ParmsToList`(X VARCHAR(8000), delim VARCHAR(10), IN tableName VARCHAR(100), IN columnName VARCHAR(100))
+BEGIN
+  DECLARE pCountOfDelims INT;
+  DECLARE xCopy VARCHAR(8000);
+  DECLARE pCounter INT;
+
+  SET pCounter = 1;
+  SET xCopy = X;
+  SET pCountOfDelims = ((LENGTH(xCopy)-LENGTH(REPLACE(xCopy, delim, '')))/LENGTH(delim))+1;
+
+  
+  
+
+  WHILE (pCounter<= pCountOfDelims) DO
+    SET @query = CONCAT('insert into ',tableName,'(',columnName,') values (''',strSplit(X,delim,pCounter),''')');
+    PREPARE stmt FROM @query;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    
+    SET pCounter = pCounter + 1;
+  END WHILE;
+  
+  
+END$$
+
+DELIMITER ;

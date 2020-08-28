@@ -1,0 +1,57 @@
+DELIMITER $$
+
+USE `crs2011`$$
+
+DROP PROCEDURE IF EXISTS `test_spOrderInsertUpdate`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `test_spOrderInsertUpdate`(
+	p_intUserID INT(11), 
+	p_ProductIDs VARCHAR(200) ,
+	p_ProductQts VARCHAR(200) ,	
+	p_ShippingAddress VARCHAR(2000),  
+	OUT p_ErrMsg VARCHAR(100)
+)
+sproc:BEGIN
+        DECLARE cur_DateTime DATETIME;
+        DECLARE p_TotalItem INT DEFAULT 0;
+        DECLARE p_OrderID INT DEFAULT 0;	
+       
+        SET cur_DateTime = current_date_time(); 
+        DROP TEMPORARY TABLE IF EXISTS p_ProductIDsTB;
+	DROP TEMPORARY TABLE IF EXISTS p_ProductQtsTB;
+		
+	CREATE TEMPORARY TABLE p_ProductIDsTB (ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ProductID INT);
+	CREATE TEMPORARY TABLE p_ProductQtsTB (ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, ProductQty INT);
+        CALL ParmsToList(p_ProductIDs,',','p_ProductIDsTB','ProductID');
+	CALL ParmsToList(p_ProductQts,',','p_ProductQtsTB','ProductQty');
+	
+	SELECT SUM(ProductQty) INTO p_TotalItem FROM p_ProductQtsTB;
+	
+        START TRANSACTION;
+        
+		INSERT INTO `jibanorders`(`OrderDateTime`,`UserID`,`ShippingAddress`,`Items`)
+		SELECT
+		      cur_DateTime,
+		      p_intUserID,
+		      p_ShippingAddress,
+		      p_TotalItem;
+		      
+		  
+		  SET p_OrderID = LAST_INSERT_ID();
+		  
+		   INSERT INTO `jibanorderdetails`(`OrderID`,`ProductID`,`Items`)
+		   SELECT
+		     p_OrderID,
+		    a.ProductID,
+		    b.ProductQty
+		   FROM p_ProductIDsTB a
+		   INNER JOIN p_ProductQtsTB b ON a.id=b.id;
+		   
+		   SELECT 
+		     * 
+		   FROM `jibanusers` WHERE `UserID`=p_intUserID;
+	   
+        COMMIT;
+END$$
+
+DELIMITER ;
